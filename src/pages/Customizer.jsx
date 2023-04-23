@@ -1,12 +1,10 @@
-import React, { useStaet, useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSnapshot } from "valtio";
 
-import config from "../config/config";
 import state from "../store";
-import { download } from "../assets";
-import { downloadCanvasToImage, reader } from "../config/helpers";
-import { DecalTypes, EditorTabs, FilterTabs } from "../config/constants";
+import { reader } from "../config/helpers";
+import { EditorTabs, FilterTabs, DecalTypes } from "../config/constants";
 import { fadeAnimation, slideAnimation } from "../config/motion";
 import {
   AIPicker,
@@ -20,15 +18,17 @@ const Customizer = () => {
   const snap = useSnapshot(state);
 
   const [file, setFile] = useState("");
+
   const [prompt, setPrompt] = useState("");
   const [generatingImg, setGeneratingImg] = useState(false);
+
   const [activeEditorTab, setActiveEditorTab] = useState("");
   const [activeFilterTab, setActiveFilterTab] = useState({
     logoShirt: true,
     stylishShirt: false,
   });
 
-  //show tab content depending on the active tab
+  // show tab content depending on the activeTab
   const generateTabContent = () => {
     switch (activeEditorTab) {
       case "colorpicker":
@@ -50,9 +50,24 @@ const Customizer = () => {
   };
 
   const handleSubmit = async (type) => {
-    if (!prompt) return alert("please enter a prompt");
+    if (!prompt) return alert("Please enter a prompt");
 
     try {
+      setGeneratingImg(true);
+
+      const response = await fetch("http://localhost:8080/api/v1/dalle", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+        }),
+      });
+
+      const data = await response.json();
+
+      handleDecals(type, `data:image/png;base64,${data.photo}`);
     } catch (error) {
       alert(error);
     } finally {
@@ -85,7 +100,7 @@ const Customizer = () => {
         break;
     }
 
-    // after setting the state, activeTab
+    // after setting the state, activeFilterTab is updated
 
     setActiveFilterTab((prevState) => {
       return {
@@ -120,6 +135,7 @@ const Customizer = () => {
                     handleClick={() => setActiveEditorTab(tab.name)}
                   />
                 ))}
+
                 {generateTabContent()}
               </div>
             </div>
